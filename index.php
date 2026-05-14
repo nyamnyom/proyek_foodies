@@ -1,6 +1,42 @@
 <?php
-// nanti bisa pakai koneksi.php kalau mau ambil data
-// include "config/koneksi.php";
+session_start();
+include "config/koneksi.php";
+
+$isPremium = false;
+
+if(isset($_SESSION['user_id'])){
+
+    $uid = $_SESSION['user_id'];
+
+    $cek = mysqli_query($conn,"
+        SELECT * FROM premium_users
+        WHERE user_id='$uid'
+        AND aktif_sampai >= CURDATE()
+    ");
+
+    if(mysqli_num_rows($cek) > 0){
+        $isPremium = true;
+    }
+}
+
+if($isPremium){
+
+    $query = mysqli_query($conn,"
+        SELECT * FROM menus
+        WHERE status='approved'
+        ORDER BY id DESC
+    ");
+
+}else{
+
+    $query = mysqli_query($conn,"
+        SELECT *
+        FROM menus
+        WHERE status='approved'
+        AND is_premium='0'
+        ORDER BY id DESC
+    ");
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -183,14 +219,21 @@ body {
 .hero-cta {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
+
+    width: fit-content;      /* biar ga panjang */
+    padding: 16px 30px;
+
     background: var(--dark);
     color: var(--cream);
+
     text-decoration: none;
-    padding: 14px 28px;
     border-radius: 100px;
-    font-size: 14px;
-    font-weight: 500;
+
+    font-size: 17px;         /* diperbesar */
+    font-weight: 600;
+
     transition: background 0.25s, transform 0.2s;
 }
 
@@ -207,7 +250,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 20px;
 }
 
 /* ── SECTION HEADERS ── */
@@ -571,6 +614,7 @@ footer {
     color: rgba(255,255,255,0.3);
     font-size: 13px;
 }
+
 </style>
 </head>
 
@@ -579,13 +623,21 @@ footer {
 <!-- NAVBAR -->
 <nav class="navbar">
     <div class="nav-left">
-        <a href="#" class="nav-logo">
+        <a href="index.php" class="nav-logo">
             <img src="https://cdn-icons-png.flaticon.com/512/3075/3075977.png">
             <span>Foodies</span>
         </a>
         <div class="nav-links">
-            <a href="#">Home</a>
+            <a href="index.php">Home</a>
             <a href="menu.php">Menu</a>
+            <a href="bookmark.php">Bookmark</a>
+            <a href="tambah_resep.php">Tambah Resep</a>
+
+            <?php if($isPremium): ?>
+                <a href="premium.php" style="color:gold; font-weight:600;">
+                    Premium 👑
+                </a>
+            <?php endif; ?>
         </div>
     </div>
     <div class="nav-right">

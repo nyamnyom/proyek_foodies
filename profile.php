@@ -15,8 +15,41 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
-$stmt->close();
 
+if (!$user) {
+    die("Data user tidak ditemukan");
+}
+
+/* DEFAULT ROLE */
+if (!isset($user['role']) || empty($user['role'])) {
+    $user['role'] = 'user';
+}
+$stmt->close();
+/* CEK PREMIUM */
+$isPremium = false;
+$premium_expired = null;
+
+$cekPremium = $conn->prepare("
+    SELECT aktif_sampai
+    FROM premium_users
+    WHERE user_id = ?
+    AND aktif_sampai >= CURDATE()
+    LIMIT 1
+");
+
+$cekPremium->bind_param("i", $user_id);
+$cekPremium->execute();
+
+$premiumResult = $cekPremium->get_result();
+
+if ($premiumResult->num_rows > 0) {
+    $isPremium = true;
+
+    $premiumData = $premiumResult->fetch_assoc();
+    $premium_expired = $premiumData['aktif_sampai'];
+}
+
+$cekPremium->close();
 // Hitung total menu (untuk info umum)
 $total_menu = 0;
 $res = $conn->query("SELECT COUNT(*) as total FROM menus");
@@ -190,7 +223,6 @@ body {
 
 .avatar-badge svg { width: 10px; height: 10px; fill: white; }
 
-.profile-info {}
 
 .profile-role-tag {
     display: inline-block;
@@ -344,7 +376,6 @@ body {
 .stat-icon.brown  { background: rgba(160,82,45,0.1); }
 .stat-icon.dark   { background: rgba(28,24,17,0.07); }
 
-.stat-text {}
 .stat-number {
     font-family: 'Playfair Display', serif;
     font-size: 28px;
@@ -491,7 +522,6 @@ body {
     flex-shrink: 0;
 }
 
-.menu-mini-info {}
 .menu-mini-name {
     font-size: 14px;
     font-weight: 500;
@@ -551,6 +581,17 @@ footer {
     color: rgba(255,255,255,0.3);
     font-size: 13px;
 }
+.stats-inner {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.stats-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+
 
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
@@ -638,7 +679,7 @@ footer {
                     Jelajahi Menu
                 </a>
                 <?php if ($user['role'] === 'admin'): ?>
-                <a href="admin/dashboard.php" class="btn btn-outline">
+                <a href="admin_index.php" class="btn btn-outline">
                     ⚙ Dashboard Admin
                 </a>
                 <?php endif; ?>
@@ -649,6 +690,29 @@ footer {
     <!-- STATS STRIP -->
     <div class="stats-strip">
         <div class="stats-inner">
+
+            <div class="stat-card">
+                <div class="stat-icon orange">👑</div>
+                <div class="stat-text">
+
+                    <?php if($isPremium): ?>
+
+                        <div class="stat-number">Premium</div>
+                        <div class="stat-label">
+                            Aktif sampai <?= date('d M Y', strtotime($premium_expired)) ?>
+                        </div>
+
+                    <?php else: ?>
+
+                        <div class="stat-number">Free</div>
+                        <div class="stat-label">
+                            Belum upgrade premium
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
+            </div>
 
             <div class="stat-card">
                 <div class="stat-icon orange">🍽</div>
@@ -787,6 +851,59 @@ footer {
             </a>
         </div>
     </div>
+
+    <!-- PREMIUM SECTION -->
+<div class="section">
+
+    <div class="section-header">
+        <h2 class="section-title">
+            Foodies <em style="font-style:italic; color:var(--warm);">Premium</em>
+        </h2>
+    </div>
+
+    <div class="info-card">
+
+        <?php if($isPremium): ?>
+
+            <h3>Status Premium</h3>
+
+            <div class="info-row">
+                <span class="info-label">Membership</span>
+                <span class="info-value" style="color:gold;">
+                    👑 Premium Active
+                </span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Aktif Sampai</span>
+                <span class="info-value">
+                    <?= date('d M Y', strtotime($premium_expired)) ?>
+                </span>
+            </div>
+
+        <?php else: ?>
+
+            <h3>Upgrade Premium</h3>
+
+            <p style="
+                color:var(--muted);
+                margin-bottom:24px;
+                line-height:1.7;
+                font-size:14px;
+            ">
+                Dapatkan akses resep eksklusif premium,
+                fitur spesial, dan pengalaman tanpa batas.
+            </p>
+
+            <a href="premium.php" class="btn btn-primary">
+                👑 Beli Premium
+            </a>
+
+        <?php endif; ?>
+
+    </div>
+
+</div>
 
 </div><!-- end page-wrapper -->
 

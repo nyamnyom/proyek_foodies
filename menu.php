@@ -52,6 +52,23 @@ if($min_bintang >= 1) {
 }
 
 $result = mysqli_query($conn, $query);
+
+$isPremium = false;
+
+if(isset($_SESSION['user_id'])){
+
+    $uid = $_SESSION['user_id'];
+
+    $cek = mysqli_query($conn,"
+        SELECT * FROM premium_users
+        WHERE user_id='$uid'
+        AND aktif_sampai >= CURDATE()
+    ");
+
+    if(mysqli_num_rows($cek) > 0){
+        $isPremium = true;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -370,7 +387,6 @@ body {
     line-height: 1;
 }
 
-.bmi-result .bmi-info {}
 
 .bmi-result .bmi-info span {
     display: block;
@@ -613,7 +629,14 @@ body {
         </a>
         <div class="nav-links">
             <a href="index.php">Home</a>
-            <a href="menu.php" class="active">Menu</a>
+            <a href="menu.php">Menu</a>
+
+            <a href="bookmark.php">Bookmark</a>
+            <?php if($isPremium): ?>
+                <a href="premium.php" style="color:gold; font-weight:600;">
+                    Premium 👑
+                </a>
+            <?php endif; ?>
         </div>
     </div>
     <div class="nav-right">

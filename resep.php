@@ -28,7 +28,12 @@ while($b = mysqli_fetch_assoc($r_bahan)) {
 }
 
 /* Ambil langkah */
-$q_langkah = "SELECT * FROM langkah_menu WHERE menu_id = $id ORDER BY step_ke ASC";
+$q_langkah = "
+    SELECT *
+    FROM langkah_menu
+    WHERE menu_id = $id
+    ORDER BY step_ke ASC
+";
 $r_langkah = mysqli_query($conn, $q_langkah);
 $langkahs  = [];
 while($l = mysqli_fetch_assoc($r_langkah)) {
@@ -106,6 +111,70 @@ if(isset($_SESSION['user_id'])) {
     }
 }
 // ─────────────────────────────────────────────────────────────────────────────
+$img_url = $menu['gambar'] ?? 'https://via.placeholder.com/800x500?text=No+Image';
+
+// ── BOOKMARK ─────────────────────────────────────
+$isBookmarked = false;
+
+if(isset($_SESSION['user_id'])){
+
+    $uid = $_SESSION['user_id'];
+
+    // cek sudah bookmark atau belum
+    $cekBookmark = mysqli_query($conn,"
+        SELECT *
+        FROM bookmarks
+        WHERE user_id='$uid'
+        AND menu_id='$id'
+    ");
+
+    if(mysqli_num_rows($cekBookmark) > 0){
+        $isBookmarked = true;
+    }
+
+    // tambah bookmark
+    if(isset($_POST['add_bookmark'])){
+
+        mysqli_query($conn,"
+            INSERT INTO bookmarks(user_id, menu_id)
+            VALUES('$uid','$id')
+        ");
+
+        header("Location: resep.php?id=$id");
+        exit;
+    }
+
+    // hapus bookmark
+    if(isset($_POST['remove_bookmark'])){
+
+        mysqli_query($conn,"
+            DELETE FROM bookmarks
+            WHERE user_id='$uid'
+            AND menu_id='$id'
+        ");
+
+        header("Location: resep.php?id=$id");
+        exit;
+    }
+}
+
+$isPremium = false;
+
+if(isset($_SESSION['user_id'])){
+
+    $uid = $_SESSION['user_id'];
+
+    $cek = mysqli_query($conn,"
+        SELECT * FROM premium_users
+        WHERE user_id='$uid'
+        AND aktif_sampai >= CURDATE()
+    ");
+
+    if(mysqli_num_rows($cek) > 0){
+        $isPremium = true;
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -323,8 +392,7 @@ body {
     align-items: start;
 }
 
-/* ── LEFT COLUMN ── */
-.recipe-main {}
+/* ── LEFT COLUM
 
 /* section label */
 .sec-label {
@@ -388,7 +456,6 @@ body {
     font-weight: 700;
 }
 
-.step-body {}
 
 .step-body p {
     font-size: 16px;
@@ -397,8 +464,20 @@ body {
     font-weight: 300;
 }
 
-/* ── RIGHT SIDEBAR ── */
-.recipe-sidebar {}
+.step-img{
+    width:100%;
+    margin-top:18px;
+    border-radius:18px;
+    overflow:hidden;
+    border:1px solid var(--border);
+}
+
+.step-img img{
+    width:100%;
+    display:block;
+    object-fit:cover;
+    max-height:420px;
+}
 
 .sidebar-card {
     background: var(--card-bg);
@@ -983,6 +1062,37 @@ body {
 
 .no-review p { font-size: 15px; font-weight: 300; }
 
+/* ── BOOKMARK BUTTON ── */
+.bookmark-btn{
+    border:none;
+    outline:none;
+    cursor:pointer;
+
+    padding:14px 26px;
+    border-radius:100px;
+
+    background:rgba(255,255,255,0.15);
+    backdrop-filter:blur(10px);
+
+    color:white;
+    font-size:14px;
+    font-weight:500;
+
+    border:1px solid rgba(255,255,255,0.2);
+
+    transition:0.25s;
+}
+
+.bookmark-btn:hover{
+    transform:translateY(-2px);
+    background:rgba(255,255,255,0.22);
+}
+
+.bookmark-btn.bookmarked{
+    background:#C8863C;
+    border-color:#C8863C;
+    color:white;
+}
 /* responsive */
 @media(max-width: 768px) {
     .recipe-wrap { grid-template-columns: 1fr; gap: 32px; }
@@ -993,6 +1103,8 @@ body {
     .review-form-wrap { padding: 24px 20px; }
     .review-section { padding-bottom: 40px; }
 }
+
+
 </style>
 </head>
 <body>
@@ -1006,14 +1118,23 @@ body {
         </a>
         <div class="nav-links">
             <a href="index.php">Home</a>
-            <a href="menu.php" class="active">Menu</a>
-            <a href="#">Resep</a>
+            <a href="menu.php">Menu</a>
+
+            <a href="bookmark.php">Bookmark</a>
+
+            <?php if($isPremium): ?>
+                <a href="premium.php" style="color:gold; font-weight:600;">
+                    Premium 👑
+                </a>
+            <?php endif; ?>
         </div>
     </div>
     <div class="nav-right">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-        </svg>
+        <a href="profile.php">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+            </svg>
+        </a>
     </div>
 </nav>
 
@@ -1039,6 +1160,28 @@ body {
             <?php endif; ?>
         </div>
         <h1><?= htmlspecialchars($menu['nama']) ?></h1>
+
+        <?php if(isset($_SESSION['user_id'])): ?>
+
+        <form method="POST" style="margin-top:22px;">
+
+            <?php if($isBookmarked): ?>
+
+                <button type="submit" name="remove_bookmark" class="bookmark-btn bookmarked">
+                    ❤️ Tersimpan di Bookmark
+                </button>
+
+            <?php else: ?>
+
+                <button type="submit" name="add_bookmark" class="bookmark-btn">
+                    🤍 Simpan ke Bookmark
+                </button>
+
+            <?php endif; ?>
+
+        </form>
+
+        <?php endif; ?>
     </div>
 </div>
 
@@ -1063,6 +1206,15 @@ body {
                 <div class="step-num"><?= $step['step_ke'] ?></div>
                 <div class="step-body">
                     <p><?= htmlspecialchars($step['deskripsi']) ?></p>
+                <?php if(!empty($step['gambar'])): ?>
+                    <div class="step-img">
+                        <img 
+                            src="<?= htmlspecialchars($step['gambar']) ?>" 
+                            alt="Step <?= $step['step_ke'] ?>"
+                        >
+                    </div>
+                <?php endif; ?>
+
                 </div>
             </div>
             <?php endforeach; ?>

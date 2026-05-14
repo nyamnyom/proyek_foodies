@@ -11,64 +11,135 @@ $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ADD Menu
-    if (isset($_POST['action']) && $_POST['action'] === 'add_menu') {
-        $nama   = mysqli_real_escape_string($conn, $_POST['nama']);
-        $bahan  = mysqli_real_escape_string($conn, $_POST['bahan_utama']);
-        $kat    = mysqli_real_escape_string($conn, $_POST['kategori']);
-        $kalori = (int)$_POST['kalori'];
-        $gambar = mysqli_real_escape_string($conn, $_POST['gambar']);
-        mysqli_query($conn, "INSERT INTO menus (nama,bahan,kategori_menu,kalori,gambar) VALUES ('$nama','$bahan','$kat',$kalori,'$gambar')");
-        $new_id = mysqli_insert_id($conn);
-        // bahan
-        if (!empty($_POST['bahan_list'])) {
-            foreach (array_filter(array_map('trim', explode("\n", $_POST['bahan_list']))) as $b) {
-                $b = mysqli_real_escape_string($conn, $b);
-                mysqli_query($conn, "INSERT INTO bahan_menu (menu_id,nama_bahan) VALUES ($new_id,'$b')");
+if ($_POST['action'] === 'add_menu') {
+
+    $nama   = mysqli_real_escape_string($conn, $_POST['nama']);
+    $bahan  = mysqli_real_escape_string($conn, $_POST['bahan_utama']);
+    $kat    = mysqli_real_escape_string($conn, $_POST['kategori']);
+
+    $kalori      = (int)$_POST['kalori'];
+    $protein     = (float)$_POST['protein'];
+    $karbohidrat = (float)$_POST['karbohidrat'];
+    $lemak       = (float)$_POST['lemak'];
+    $gula        = (float)$_POST['gula'];
+    $serat       = (float)$_POST['serat'];
+    $sodium      = (float)$_POST['sodium'];
+
+    $gambar = mysqli_real_escape_string($conn, $_POST['gambar']);
+
+    mysqli_query($conn, "
+        INSERT INTO menus (
+            nama,bahan,kategori_menu,
+            kalori,protein,karbohidrat,lemak,gula,serat,sodium,gambar
+        )
+        VALUES (
+            '$nama','$bahan','$kat',
+            $kalori,$protein,$karbohidrat,$lemak,$gula,$serat,$sodium,'$gambar'
+        )
+    ");
+
+    $mid = mysqli_insert_id($conn);
+
+    /* ✅ INSERT BAHAN */
+    if (!empty($_POST['bahan_list'])) {
+        foreach (explode("\n", $_POST['bahan_list']) as $b) {
+            $b = trim($b);
+            if ($b) {
+                mysqli_query($conn,"INSERT INTO bahan_menu(menu_id,nama_bahan)
+                VALUES ($mid,'".mysqli_real_escape_string($conn,$b)."')");
             }
         }
-        // langkah
-        if (!empty($_POST['langkah_list'])) {
-            $steps = array_filter(array_map('trim', explode("\n", $_POST['langkah_list'])));
-            $step_ke = 1;
-            foreach ($steps as $s) {
-                $s = mysqli_real_escape_string($conn, $s);
-                mysqli_query($conn, "INSERT INTO langkah_menu (menu_id,step_ke,deskripsi) VALUES ($new_id,$step_ke,'$s')");
-                $step_ke++;
-            }
-        }
-        $msg = 'success|Menu berhasil ditambahkan!';
-        header("Location: admin_index.php?tab=menu&msg=add_ok"); exit;
     }
 
-    // EDIT Menu
-    if (isset($_POST['action']) && $_POST['action'] === 'edit_menu') {
-        $id     = (int)$_POST['menu_id'];
-        $nama   = mysqli_real_escape_string($conn, $_POST['nama']);
-        $bahan  = mysqli_real_escape_string($conn, $_POST['bahan_utama']);
-        $kat    = mysqli_real_escape_string($conn, $_POST['kategori']);
-        $kalori = (int)$_POST['kalori'];
-        $gambar = mysqli_real_escape_string($conn, $_POST['gambar']);
-        mysqli_query($conn, "UPDATE menus SET nama='$nama',bahan='$bahan',kategori_menu='$kat',kalori=$kalori,gambar='$gambar' WHERE id=$id");
-        // reset bahan & langkah
-        mysqli_query($conn, "DELETE FROM bahan_menu WHERE menu_id=$id");
-        mysqli_query($conn, "DELETE FROM langkah_menu WHERE menu_id=$id");
-        if (!empty($_POST['bahan_list'])) {
-            foreach (array_filter(array_map('trim', explode("\n", $_POST['bahan_list']))) as $b) {
-                $b = mysqli_real_escape_string($conn, $b);
-                mysqli_query($conn, "INSERT INTO bahan_menu (menu_id,nama_bahan) VALUES ($id,'$b')");
+    /* ✅ INSERT LANGKAH */
+    if (!empty($_POST['step_deskripsi'])) {
+        foreach ($_POST['step_deskripsi'] as $i => $desc) {
+
+            $desc = mysqli_real_escape_string($conn,$desc);
+            $img  = mysqli_real_escape_string($conn,$_POST['step_gambar'][$i] ?? '');
+            $vid  = mysqli_real_escape_string($conn,$_POST['step_video'][$i] ?? '');
+
+            if ($desc) {
+                mysqli_query($conn,"
+                    INSERT INTO langkah_menu(menu_id,step_ke,deskripsi,gambar_step,video_step)
+                    VALUES ($mid,$i+1,'$desc','$img','$vid')
+                ");
             }
         }
-        if (!empty($_POST['langkah_list'])) {
-            $steps = array_filter(array_map('trim', explode("\n", $_POST['langkah_list'])));
-            $step_ke = 1;
-            foreach ($steps as $s) {
-                $s = mysqli_real_escape_string($conn, $s);
-                mysqli_query($conn, "INSERT INTO langkah_menu (menu_id,step_ke,deskripsi) VALUES ($id,$step_ke,'$s')");
-                $step_ke++;
-            }
-        }
-        header("Location: admin_index.php?tab=menu&msg=edit_ok"); exit;
     }
+
+    header("Location: admin_index.php?tab=menu&msg=add_ok");
+    exit;
+}
+
+if ($_POST['action'] === 'edit_menu') {
+
+    $mid    = (int)$_POST['menu_id'];
+    $nama   = mysqli_real_escape_string($conn, $_POST['nama']);
+    $bahan  = mysqli_real_escape_string($conn, $_POST['bahan_utama']);
+    $kat    = mysqli_real_escape_string($conn, $_POST['kategori']);
+
+    $kalori      = (int)$_POST['kalori'];
+    $protein     = (float)$_POST['protein'];
+    $karbohidrat = (float)$_POST['karbohidrat'];
+    $lemak       = (float)$_POST['lemak'];
+    $gula        = (float)$_POST['gula'];
+    $serat       = (float)$_POST['serat'];
+    $sodium      = (float)$_POST['sodium'];
+
+    $gambar = mysqli_real_escape_string($conn, $_POST['gambar']);
+
+    mysqli_query($conn,"
+        UPDATE menus SET
+            nama='$nama',
+            bahan='$bahan',
+            kategori_menu='$kat',
+            kalori=$kalori,
+            protein=$protein,
+            karbohidrat=$karbohidrat,
+            lemak=$lemak,
+            gula=$gula,
+            serat=$serat,
+            sodium=$sodium,
+            gambar='$gambar'
+        WHERE id=$mid
+    ");
+
+    /* RESET DETAIL */
+    mysqli_query($conn,"DELETE FROM bahan_menu WHERE menu_id=$mid");
+    mysqli_query($conn,"DELETE FROM langkah_menu WHERE menu_id=$mid");
+
+    /* REINSERT BAHAN */
+    if (!empty($_POST['bahan_list'])) {
+        foreach (explode("\n", $_POST['bahan_list']) as $b) {
+            $b = trim($b);
+            if ($b) {
+                mysqli_query($conn,"INSERT INTO bahan_menu(menu_id,nama_bahan)
+                VALUES ($mid,'".mysqli_real_escape_string($conn,$b)."')");
+            }
+        }
+    }
+
+    /* REINSERT STEP */
+    if (!empty($_POST['step_deskripsi'])) {
+        foreach ($_POST['step_deskripsi'] as $i => $desc) {
+
+            $desc = mysqli_real_escape_string($conn,$desc);
+            $img  = mysqli_real_escape_string($conn,$_POST['step_gambar'][$i] ?? '');
+            $vid  = mysqli_real_escape_string($conn,$_POST['step_video'][$i] ?? '');
+
+            if ($desc) {
+                mysqli_query($conn,"
+                    INSERT INTO langkah_menu(menu_id,step_ke,deskripsi,gambar_step,video_step)
+                    VALUES ($mid,$i+1,'$desc','$img','$vid')
+                ");
+            }
+        }
+    }
+
+    header("Location: admin_menu.php?id=$mid&msg=edit_ok");
+    exit;
+}
 
     // DELETE Menu
     if (isset($_POST['action']) && $_POST['action'] === 'del_menu') {
@@ -134,10 +205,21 @@ function get_bahan($conn, $id) {
     return implode("\n", $arr);
 }
 function get_langkah($conn, $id) {
-    $r = mysqli_query($conn,"SELECT deskripsi FROM langkah_menu WHERE menu_id=$id ORDER BY step_ke");
+
+    $r = mysqli_query($conn,"
+        SELECT deskripsi,gambar_step,video_step
+        FROM langkah_menu
+        WHERE menu_id=$id
+        ORDER BY step_ke
+    ");
+
     $arr = [];
-    while($row = mysqli_fetch_row($r)) $arr[] = $row[0];
-    return implode("\n", $arr);
+
+    while($row = mysqli_fetch_assoc($r)) {
+        $arr[] = $row;
+    }
+
+    return json_encode($arr);
 }
 ?>
 <!DOCTYPE html>
@@ -275,6 +357,30 @@ textarea{resize:vertical;min-height:90px}
 .flash.err{background:rgba(192,57,43,0.10);color:var(--red);border:1px solid rgba(192,57,43,0.2)}
 
 .avatar-sm{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:12px;color:var(--white);font-weight:700;flex-shrink:0}
+
+.step-box{
+    padding:20px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    margin-bottom:16px;
+    background:rgba(255,255,255,0.5);
+}
+
+.btn-add-step{
+    margin-top:10px;
+    padding:10px 18px;
+    border:none;
+    border-radius:100px;
+    background:var(--accent);
+    color:white;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:500;
+}
+
+.btn-add-step:hover{
+    background:var(--warm);
+}
 </style>
 </head>
 <body>
@@ -398,9 +504,43 @@ textarea{resize:vertical;min-height:90px}
                   <option value="instant">Instant</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label>Kalori (kkal)</label>
-                <input type="number" name="kalori" required placeholder="cth: 350">
+              <div class="form-grid three">
+
+                  <div class="form-group">
+                      <label>Kalori (kkal)</label>
+                      <input type="number" name="kalori" required placeholder="350">
+                  </div>
+
+                  <div class="form-group">
+                      <label>Protein (g)</label>
+                      <input type="number" step="0.1" name="protein" placeholder="18">
+                  </div>
+
+                  <div class="form-group">
+                      <label>Karbohidrat (g)</label>
+                      <input type="number" step="0.1" name="karbohidrat" placeholder="42">
+                  </div>
+
+                  <div class="form-group">
+                      <label>Lemak (g)</label>
+                      <input type="number" step="0.1" name="lemak" placeholder="12">
+                  </div>
+
+                  <div class="form-group">
+                      <label>Gula (g)</label>
+                      <input type="number" step="0.1" name="gula" placeholder="5">
+                  </div>
+
+                  <div class="form-group">
+                      <label>Serat (g)</label>
+                      <input type="number" step="0.1" name="serat" placeholder="4">
+                  </div>
+
+                  <div class="form-group">
+                      <label>Sodium / Garam (mg)</label>
+                      <input type="number" step="0.1" name="sodium" placeholder="220">
+                  </div>
+
               </div>
               <div class="form-group full">
                 <label>URL Gambar (paste dari Google Image → Copy Image Address)</label>
@@ -410,8 +550,40 @@ textarea{resize:vertical;min-height:90px}
             </div>
             <div class="divider-label">Bahan-bahan (satu per baris)</div>
             <textarea name="bahan_list" rows="5" placeholder="Beras 200g&#10;Telur 2 butir&#10;Kecap manis 2 sdm"></textarea>
-            <div class="divider-label">Langkah Memasak (satu langkah per baris)</div>
-            <textarea name="langkah_list" rows="6" placeholder="Panaskan minyak di wajan&#10;Tumis bawang hingga harum&#10;Masukkan nasi dan aduk rata"></textarea>
+            <div class="divider-label">Step By Step Memasak</div>
+            <div id="steps-container">
+
+                <div class="step-box">
+                    <div class="form-group full">
+                        <label>Deskripsi Langkah</label>
+                        <textarea name="step_deskripsi[]" rows="3"
+                        placeholder="cth: Panaskan minyak lalu tumis bawang"></textarea>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Gambar Step (URL)</label>
+                            <input type="text"
+                            name="step_gambar[]"
+                            placeholder="https://gambar.com/step1.jpg">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Video Pendek (URL)</label>
+                            <input type="text"
+                            name="step_video[]"
+                            placeholder="https://video.com/video.mp4">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <button type="button"
+            class="btn-add-step"
+            onclick="addStep()">
+            ＋ Tambah Step
+            </button>
             <div class="form-actions">
               <button type="submit" class="btn-save">Simpan Menu</button>
               <button type="button" class="btn-cancel" onclick="toggleAdd('menu')">Batal</button>
@@ -435,7 +607,7 @@ textarea{resize:vertical;min-height:90px}
           while($m = mysqli_fetch_assoc($r_menus)):
             $kal_pct = min(round(($m['kalori']/600)*100),100);
             $bahan_js   = addslashes(get_bahan($conn,$m['id']));
-            $langkah_js = addslashes(get_langkah($conn,$m['id']));
+            $langkah_js = get_langkah($conn,$m['id']);
             $gambar_js  = addslashes($m['gambar'] ?? '');
           ?>
           <tr>
@@ -503,15 +675,34 @@ textarea{resize:vertical;min-height:90px}
                 <input type="number" name="kalori" id="edit-menu-kalori">
               </div>
               <div class="form-group full">
-                <label>URL Gambar</label>
-                <input type="text" name="gambar" id="edit-menu-gambar" placeholder="https://..." oninput="previewImg(this,'edit-gambar-prev')">
-                <img id="edit-gambar-prev" class="gambar-preview" style="margin-top:8px">
+                  <label>URL Gambar</label>
+
+                  <input
+                      type="text"
+                      name="gambar"
+                      id="edit-menu-gambar"
+                      placeholder="https://..."
+                      oninput="previewImg(this,'edit-gambar-prev')"
+                  >
+
+                  <img
+                      id="edit-gambar-prev"
+                      class="gambar-preview"
+                      style="margin-top:8px"
+                  >
               </div>
             </div>
             <div class="divider-label">Bahan-bahan (satu per baris)</div>
             <textarea name="bahan_list" id="edit-menu-bahan-list" rows="5"></textarea>
-            <div class="divider-label">Langkah Memasak (satu langkah per baris)</div>
-            <textarea name="langkah_list" id="edit-menu-langkah-list" rows="6"></textarea>
+            <div class="divider-label">Step By Step Memasak</div>
+
+            <div id="edit-steps-container"></div>
+
+            <button type="button"
+            class="btn-add-step"
+            onclick="addEditStep()">
+            ＋ Tambah Step
+            </button>
             <div class="form-actions">
               <button type="submit" class="btn-save">Simpan Perubahan</button>
               <button type="button" class="btn-cancel" onclick="closeEdit('menu')">Batal</button>
@@ -684,26 +875,132 @@ function previewImg(input, imgId) {
 
 // Open edit panel MENU
 function openEditMenu(id, nama, bahan, kat, kalori, gambar, bahanList, langkahList) {
-  document.getElementById('edit-menu-id').value = id;
-  document.getElementById('edit-menu-nama').value = nama;
-  document.getElementById('edit-menu-bahan').value = bahan;
-  document.getElementById('edit-menu-kalori').value = kalori;
-  document.getElementById('edit-menu-gambar').value = gambar;
-  document.getElementById('edit-menu-bahan-list').value = bahanList;
-  document.getElementById('edit-menu-langkah-list').value = langkahList;
-  // set select
-  const sel = document.getElementById('edit-menu-kat');
-  for(let i=0;i<sel.options.length;i++) {
-    if(sel.options[i].value===kat) sel.selectedIndex=i;
-  }
-  // preview image
-  const prevImg = document.getElementById('edit-gambar-prev');
-  if(gambar) { prevImg.src=gambar; prevImg.style.display='block'; }
-  else { prevImg.style.display='none'; }
-  // open
-  const panel = document.getElementById('edit-panel-menu');
-  panel.classList.add('open');
-  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+
+    document.getElementById('edit-menu-id').value = id;
+    document.getElementById('edit-menu-nama').value = nama;
+    document.getElementById('edit-menu-bahan').value = bahan;
+    document.getElementById('edit-menu-kalori').value = kalori;
+    document.getElementById('edit-menu-gambar').value = gambar;
+    document.getElementById('edit-menu-bahan-list').value = bahanList;
+
+    // kategori
+    const sel = document.getElementById('edit-menu-kat');
+
+    for(let i=0;i<sel.options.length;i++) {
+        if(sel.options[i].value === kat){
+            sel.selectedIndex = i;
+        }
+    }
+
+    // preview gambar
+    const prevImg = document.getElementById('edit-gambar-prev');
+
+    if(gambar){
+        prevImg.src = gambar;
+        prevImg.style.display = 'block';
+    } else {
+        prevImg.style.display = 'none';
+    }
+
+    // STEP
+    const container = document.getElementById('edit-steps-container');
+
+    container.innerHTML = '';
+
+    let steps = [];
+
+    try{
+        steps = JSON.parse(langkahList);
+    }catch(e){
+        console.log(e);
+    }
+
+    steps.forEach(step => {
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="step-box">
+
+                <div class="form-group full">
+                    <label>Deskripsi Langkah</label>
+
+                    <textarea
+                        name="step_deskripsi[]"
+                        rows="3"
+                    >${step.deskripsi ?? ''}</textarea>
+                </div>
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label>Gambar Step (URL)</label>
+
+                        <input
+                            type="text"
+                            name="step_gambar[]"
+                            value="${step.gambar_step ?? ''}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>Video Pendek (URL)</label>
+
+                        <input
+                            type="text"
+                            name="step_video[]"
+                            value="${step.video_step ?? ''}"
+                        >
+                    </div>
+
+                </div>
+
+            </div>
+        `);
+
+    });
+
+    const panel = document.getElementById('edit-panel-menu');
+
+    panel.classList.add('open');
+
+    setTimeout(()=>{
+        panel.scrollIntoView({
+            behavior:'smooth',
+            block:'nearest'
+        });
+    },100);
+}
+function addEditStep(){
+
+    const html = `
+    <div class="step-box">
+
+        <div class="form-group full">
+            <label>Deskripsi Langkah</label>
+            <textarea name="step_deskripsi[]" rows="3"></textarea>
+        </div>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Gambar Step (URL)</label>
+                <input type="text"
+                name="step_gambar[]">
+            </div>
+
+            <div class="form-group">
+                <label>Video Pendek (URL)</label>
+                <input type="text"
+                name="step_video[]">
+            </div>
+
+        </div>
+
+    </div>
+    `;
+
+    document
+    .getElementById('edit-steps-container')
+    .insertAdjacentHTML('beforeend', html);
 }
 
 // Open edit panel USER
@@ -729,6 +1026,43 @@ setTimeout(()=>{
   const f = document.querySelector('.flash');
   if(f) f.style.opacity='0', setTimeout(()=>f.remove(),400);
 }, 3500);
+
+function addStep(){
+
+    const html = `
+    <div class="step-box">
+
+        <div class="form-group full">
+            <label>Deskripsi Langkah</label>
+            <textarea name="step_deskripsi[]" rows="3"
+            placeholder="cth: Masukkan nasi lalu aduk rata"></textarea>
+        </div>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Gambar Step (URL)</label>
+                <input type="text"
+                name="step_gambar[]"
+                placeholder="https://gambar.com/step.jpg">
+            </div>
+
+            <div class="form-group">
+                <label>Video Pendek (URL)</label>
+                <input type="text"
+                name="step_video[]"
+                placeholder="https://video.com/video.mp4">
+            </div>
+
+        </div>
+
+    </div>
+    `;
+
+    document
+    .getElementById('steps-container')
+    .insertAdjacentHTML('beforeend', html);
+}
 </script>
 </body>
 </html>
