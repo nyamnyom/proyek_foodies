@@ -1,5 +1,10 @@
+-- ============================================
+-- 1. RESET & DATABASE SETUP
+-- ============================================
+DROP DATABASE IF EXISTS menu_makanan;
 CREATE DATABASE menu_makanan;
 USE menu_makanan;
+
 CREATE TABLE menus (
     id INT PRIMARY KEY,
     nama VARCHAR(100),
@@ -7,6 +12,26 @@ CREATE TABLE menus (
     kategori_menu VARCHAR(50),
     kalori INT
 );
+
+ALTER TABLE menus
+ADD created_by INT NULL,
+ADD is_premium TINYINT(1) DEFAULT 0,
+ADD STATUS ENUM('pending','approved') DEFAULT 'approved';
+
+ALTER TABLE menus
+ADD CONSTRAINT fk_menu_user
+FOREIGN KEY (created_by)
+REFERENCES users(id)
+ON DELETE SET NULL;
+
+ALTER TABLE menus
+ADD protein DECIMAL(5,2) DEFAULT 0,
+ADD karbohidrat DECIMAL(5,2) DEFAULT 0,
+ADD lemak DECIMAL(5,2) DEFAULT 0,
+ADD gula DECIMAL(5,2) DEFAULT 0,
+ADD serat DECIMAL(5,2) DEFAULT 0,
+ADD sodium DECIMAL(5,2) DEFAULT 0;
+
 INSERT INTO menus (id, nama, bahan, kategori_menu, kalori) VALUES
 (1, 'Pisang Keju', 'manis', 'dessert', 250),
 (2, 'Roti Bakar Cokelat', 'manis', 'dessert', 300),
@@ -51,6 +76,11 @@ CREATE TABLE langkah_menu (
     deskripsi TEXT,
     FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE
 );
+
+ALTER TABLE langkah_menu
+ADD gambar_step TEXT NULL,
+ADD video_step TEXT NULL;
+
 INSERT INTO bahan_menu (menu_id, nama_bahan) VALUES
 -- 1
 (1,'Pisang'),(1,'Keju'),(1,'Susu'),(1,'Mentega'),
@@ -186,17 +216,19 @@ CREATE TABLE users (
     ROLE        ENUM('admin','user') NOT NULL DEFAULT 'user',
     created_at  TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE users CHANGE PASSWORD PASSWORD VARCHAR(255);
+ALTER TABLE users CHANGE ROLE ROLE ENUM('admin','user');
  
--- Akun admin default  (password: admin123)
+-- Akun admin default  (password: 123456)
 INSERT INTO users (nama, email, PASSWORD, ROLE) VALUES
 ('Admin Foodies', 'admin@foodies.com',
- '$2y$12$YKF9p0x7rJ3U8L5eNkQuZu9xC.JNq5B5CdkE7Q2aQS1H4vXmUfCui',
+ '$2y$10$THd6fycxsZc.P06KGOKVIOzfwUQfp2pue2rROfEFAMEKd9wW73EoK',
  'admin');
  
--- Akun user contoh   (password: user123)
+-- Akun user contoh   (password: 123456)
 INSERT INTO users (nama, email, PASSWORD, ROLE) VALUES
 ('Budi Santoso', 'budi@gmail.com',
- '$2y$12$Wd2kWfGqRvT1jXsNpLaLJu4rL6OHsY/e6G5m9nBQfXb2ElUe9cHaG',
+ '$2y$10$THd6fycxsZc.P06KGOKVIOzfwUQfp2pue2rROfEFAMEKd9wW73EoK',
  'user');
  -- Jalankan setelah USE menu_makanan;
 CREATE TABLE rating (
@@ -245,3 +277,28 @@ UPDATE menus SET gambar = 'https://akcdn.detik.net.id/api/wm/2024/02/16/ilustras
 UPDATE menus SET gambar = 'https://www.allrecipes.com/thmb/N3hqMgkSlKbPmcWCkHmxekKO61I=/1500x0' WHERE id = 28;
 UPDATE menus SET gambar = 'https://www.dapurkobe.co.id/wp-content/uploads/sandwich-goreng-isi-kornet.jpg' WHERE id = 29;
 UPDATE menus SET gambar = 'https://feelgoodfoodie.net/wp-content/uploads/2023/01/Low-Carb-Egg-Wrap-08.jpg' WHERE id = 30;
+
+CREATE TABLE premium_users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    aktif_sampai DATE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE bookmarks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    menu_id INT NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_bookmark(user_id, menu_id),
+
+    FOREIGN KEY(user_id)
+    REFERENCES users(id)
+    ON DELETE CASCADE,
+
+    FOREIGN KEY(menu_id)
+    REFERENCES menus(id)
+    ON DELETE CASCADE
+);
