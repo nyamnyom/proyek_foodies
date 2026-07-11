@@ -42,10 +42,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_query($conn, "DELETE FROM rating WHERE id=$rid AND menu_id=$id");
         header("Location: admin_menu.php?id=$id&msg=del_ok"); exit;
     }
+    if (isset($_POST['action']) && $_POST['action'] === 'validate_menu') {
+        $mid = (int)$_POST['menu_id'];
+        mysqli_query($conn, "UPDATE menus SET status='approved', validated_at=NOW() WHERE id=$mid AND created_by IS NOT NULL");
+        header("Location: admin_menu.php?id=$mid&msg=validate_ok"); exit;
+    }
+    if (isset($_POST['action']) && $_POST['action'] === 'reject_menu') {
+        $mid = (int)$_POST['menu_id'];
+        mysqli_query($conn, "UPDATE menus SET status='rejected', validated_at=NULL WHERE id=$mid AND created_by IS NOT NULL");
+        header("Location: admin_menu.php?id=$mid&msg=reject_ok"); exit;
+    }
 }
 
 $menu = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM menus WHERE id=$id"));
 if (!$menu) { header('Location: admin_index.php'); exit; }
+
+$creator = null;
+if (!empty($menu['created_by'])) {
+    $creator = mysqli_fetch_assoc(mysqli_query($conn, "SELECT nama,email FROM users WHERE id=".(int)$menu['created_by']));
+}
 
 $r_bahan   = mysqli_query($conn, "SELECT * FROM bahan_menu WHERE menu_id=$id ORDER BY id");
 $r_langkah = mysqli_query($conn, "SELECT * FROM langkah_menu WHERE menu_id=$id ORDER BY step_ke");
@@ -179,6 +194,22 @@ textarea{resize:vertical;min-height:90px}
 .btn-edit-main{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:100px;background:var(--dark);color:var(--white);border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .2s}
 .btn-edit-main:hover{background:var(--warm)}
 .reviews-grid{display:flex;flex-direction:column;gap:14px}
+
+/* USER RECIPE VALIDATION CARD */
+.user-recipe-card{background:var(--card-bg);border:1px solid var(--accent);border-radius:16px;padding:18px 22px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.user-recipe-info{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.user-recipe-name{font-size:14px;color:var(--dark)}
+.user-recipe-email{color:var(--muted);font-size:12px}
+.pill-user-src{background:rgba(200,134,60,0.12);color:var(--accent);border:1px solid rgba(200,134,60,0.2)}
+.pill-status{font-weight:500}
+.pill-approved{background:rgba(46,125,82,0.10);color:var(--green);border:1px solid rgba(46,125,82,0.2)}
+.pill-rejected{background:rgba(192,57,43,0.10);color:var(--red);border:1px solid rgba(192,57,43,0.2)}
+.pill-pending{background:rgba(240,165,0,0.12);color:#B8860B;border:1px solid rgba(240,165,0,0.25)}
+.user-recipe-actions{display:flex;gap:10px}
+.btn-validate{padding:9px 20px;border-radius:100px;background:var(--green);color:var(--white);border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .2s}
+.btn-validate:hover{opacity:.85}
+.btn-reject{padding:9px 20px;border-radius:100px;background:none;color:var(--red);border:1px solid var(--red);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-reject:hover{background:rgba(192,57,43,0.08)}
 </style>
 </head>
 <body>
@@ -222,7 +253,47 @@ textarea{resize:vertical;min-height:90px}
 
   <div class="content">
     <?php if ($flash): ?>
-    <div class="flash ok" id="flash">✓ <?= $flash==='edit_ok'?'Menu berhasil diperbarui.':'Review berhasil dihapus.' ?></div>
+    <div class="flash ok" id="flash">✓ <?=
+        $flash==='edit_ok' ? 'Menu berhasil diperbarui.' :
+        ($flash==='validate_ok' ? 'Resep berhasil divalidasi dan kini tampil untuk publik.' :
+        ($flash==='reject_ok' ? 'Resep berhasil ditolak dan tidak akan tampil untuk publik.' :
+        'Review berhasil dihapus.'))
+    ?></div>
+    <?php endif; ?>
+
+    <?php if ($creator): ?>
+    <div class="user-recipe-card">
+      <div class="user-recipe-info">
+        <span class="pill pill-user-src">👤 Resep dari User</span>
+        <div class="user-recipe-name">
+          Dibuat oleh <strong><?= htmlspecialchars($creator['nama']) ?></strong>
+          <span class="user-recipe-email">(<?= htmlspecialchars($creator['email']) ?>)</span>
+        </div>
+        <?php if ($menu['status'] === 'approved'): ?>
+          <span class="pill pill-status pill-approved">✓ Tervalidasi<?= $menu['validated_at'] ? ' · '.date('d M Y, H:i', strtotime($menu['validated_at'])) : '' ?></span>
+        <?php elseif ($menu['status'] === 'rejected'): ?>
+          <span class="pill pill-status pill-rejected">✕ Ditolak</span>
+        <?php else: ?>
+          <span class="pill pill-status pill-pending">⏳ Menunggu Validasi</span>
+        <?php endif; ?>
+      </div>
+      <div class="user-recipe-actions">
+        <?php if ($menu['status'] !== 'approved'): ?>
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="action" value="validate_menu">
+          <input type="hidden" name="menu_id" value="<?= $menu['id'] ?>">
+          <button type="submit" class="btn-validate">✓ Validasi</button>
+        </form>
+        <?php endif; ?>
+        <?php if ($menu['status'] !== 'rejected'): ?>
+        <form method="POST" style="display:inline" onsubmit="return confirm('Tolak resep ini? Resep tidak akan tampil ke publik.')">
+          <input type="hidden" name="action" value="reject_menu">
+          <input type="hidden" name="menu_id" value="<?= $menu['id'] ?>">
+          <button type="submit" class="btn-reject">✕ Tolak</button>
+        </form>
+        <?php endif; ?>
+      </div>
+    </div>
     <?php endif; ?>
 
     <!-- EDIT PANEL -->

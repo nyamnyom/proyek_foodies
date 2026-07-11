@@ -27,30 +27,12 @@ if(mysqli_num_rows($cek) > 0){
     $expired = $dataPremium['aktif_sampai'];
 }
 
-/* BELI PREMIUM */
-if(isset($_POST['beli'])){
-
-    $expiredBaru = date('Y-m-d', strtotime('+30 days'));
-
-    if($isPremium){
-
-        mysqli_query($conn,"
-            UPDATE premium_users
-            SET aktif_sampai='$expiredBaru'
-            WHERE user_id='$user_id'
-        ");
-
-    } else {
-
-        mysqli_query($conn,"
-            INSERT INTO premium_users(user_id, aktif_sampai)
-            VALUES('$user_id','$expiredBaru')
-        ");
-    }
-
-    header("Location: premium.php");
-    exit;
-}
+/* NOTE:
+   Proses upgrade ke premium TIDAK terjadi di halaman ini lagi.
+   Tombol "Beli Premium" mengarahkan user ke payment.php,
+   dan status premium baru aktif setelah user menekan
+   tombol "Selesai" di halaman pembayaran tersebut.
+*/
 ?>
 
 <!DOCTYPE html>
@@ -254,6 +236,10 @@ body{
     font-weight:600;
 
     transition:0.25s;
+
+    display:inline-block;
+    text-decoration:none;
+    text-align:center;
 }
 
 .btn:hover{
@@ -322,6 +308,16 @@ body{
     color:#15803D;
     font-size:14px;
     line-height:1.6;
+}
+
+.success-banner{
+    margin-bottom:20px;
+    padding:16px 18px;
+    border-radius:14px;
+    background:rgba(34,197,94,0.1);
+    border:1px solid rgba(34,197,94,0.3);
+    color:#15803D;
+    font-size:14px;
 }
 
 /* RESPONSIVE */
@@ -406,6 +402,12 @@ body{
                 </div>
             <?php endif; ?>
 
+            <?php if(isset($_GET['payment']) && $_GET['payment'] === 'success'): ?>
+                <div class="success-banner">
+                    🎉 Pembayaran berhasil! Akunmu sekarang sudah Premium.
+                </div>
+            <?php endif; ?>
+
             <h5>Exclusive Membership</h5>
 
             <h1>
@@ -474,13 +476,14 @@ body{
             <ul>
                 <li>✔ Akses semua resep premium</li>
                 <li>✔ Konten eksklusif member</li>
+                <li>✔ Bookmark tanpa batas</li>
                 <li>✔ Prioritas update resep baru</li>
                 <li>✔ Tampilan premium experience</li>
             </ul>
 
             <?php if($isPremium): ?>
 
-                <button class="btn" style="width:100%; opacity:.7;">
+                <button class="btn" style="width:100%; opacity:.7;" disabled>
                     👑 Premium Aktif
                 </button>
 
@@ -491,15 +494,15 @@ body{
                     </strong>
                 </div>
 
+                <a href="payment.php" class="btn" style="width:100%; display:block; margin-top:12px; background:transparent; color:var(--dark); border:1.5px solid rgba(160,82,45,0.2);">
+                    Perpanjang Premium
+                </a>
+
             <?php else: ?>
 
-                <form method="POST">
-
-                    <button type="submit" name="beli" class="btn" style="width:100%;">
-                        👑 Beli Premium Sekarang
-                    </button>
-
-                </form>
+                <a href="payment.php" class="btn" style="width:100%;">
+                    👑 Beli Premium Sekarang
+                </a>
 
             <?php endif; ?>
 

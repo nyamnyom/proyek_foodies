@@ -630,14 +630,14 @@ footer {
         <div class="nav-links">
             <a href="index.php">Home</a>
             <a href="menu.php">Menu</a>
-            <a href="tambah_resep.php">Tambah Resep</a>
-
             <?php if($isPremium): ?>
+                <a href="tambah_resep.php">Tambah Resep</a>
                 <a href="bookmark.php">Bookmark</a>
-                <a href="premium.php" style="color:gold; font-weight:600;">
-                    Premium 👑
-                </a>
+                
             <?php endif; ?>
+            <a href="premium.php" style="color:gold; font-weight:600;">
+                Premium
+            </a>
         </div>
     </div>
     <div class="nav-right">
@@ -681,7 +681,7 @@ footer {
             <div class="card-body">
                 <h2>Dessert</h2>
                 <p>Nikmati berbagai hidangan manis dan dessert lezat yang siap memanjakan selera Anda.</p>
-                <div class="card-body-footer">Lihat resep &nbsp;→</div>
+                <div class="card-body-footer"><a href="menu.php" style="text-decoration: none; color: #a1834b;">Lihat resep &nbsp;→</a></div>
             </div>
         </div>
 
@@ -693,7 +693,7 @@ footer {
             <div class="card-body">
                 <h2>Healthy Food</h2>
                 <p>Temukan makanan sehat dan rendah kalori untuk mendukung gaya hidup sehat.</p>
-                <div class="card-body-footer">Lihat resep &nbsp;→</div>
+                <div class="card-body-footer"><a href="menu.php" style="text-decoration: none; color: #a1834b;">Lihat resep &nbsp;→</a></div>
             </div>
         </div>
 
@@ -705,7 +705,7 @@ footer {
             <div class="card-body">
                 <h2>Traditional Food</h2>
                 <p>Jelajahi hidangan tradisional autentik dengan cita rasa khas Indonesia.</p>
-                <div class="card-body-footer">Lihat resep &nbsp;→</div>
+                <div class="card-body-footer"><a href="menu.php" style="text-decoration: none; color: #a1834b;">Lihat resep &nbsp;→</a></div>
             </div>
         </div>
 
@@ -744,12 +744,12 @@ footer {
 <div class="section" style="padding-top: 0;">
     <div class="section-header">
         <h2 class="section-title">Kurasi <em style="font-style:italic; color:var(--warm);">Untukmu</em></h2>
-        <a href="#" class="section-link">Lihat semua →</a>
+        <a href="menu.php" class="section-link">Lihat semua →</a>
     </div>
 
     <div class="pref-grid">
 
-        <div class="pref-card">
+        <a class="pref-card" href="menu.php">
             <div class="pref-card-img">
                 <img src="https://cdn.yorkshirefoodguide.co.uk/app/uploads/2023/01/13150537/Szechuan-and-Honey-Glazed-Duck-Breast-e1679994647880.jpg" alt="Resep Unggulan">
                 <div class="pref-card-overlay"></div>
@@ -758,9 +758,9 @@ footer {
                     <p>Resep yang menerima lebih dari 100 Cooksnap</p>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <div class="pref-card">
+        <a class="pref-card" href="menu.php">
             <div class="pref-card-img">
                 <img src="https://www.aperitif.com/wp-content/uploads/2024/10/Michelin-Star-Restaurant-Indonesia-4-scaled.jpg" alt="Menu Premium">
                 <div class="pref-card-overlay"></div>
@@ -769,9 +769,9 @@ footer {
                     <p>Menu masak mingguan untukmu dan keluarga</p>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <div class="pref-card">
+        <a class="pref-card" href="menu.php">
             <div class="pref-card-img">
                 <img src="https://www.greenqueen.com.hk/wp-content/uploads/2021/02/Michelin-Green-Star-Explained-Restaurant-Hypha-Chester.jpg" alt="Paling Dilihat">
                 <div class="pref-card-overlay"></div>
@@ -780,7 +780,7 @@ footer {
                     <p>Resep yang paling banyak dilihat bulan ini</p>
                 </div>
             </div>
-        </div>
+        </a>
 
     </div>
 </div>
@@ -791,13 +791,6 @@ footer {
         <div class="footer-brand">
             <h3>Foodies</h3>
             <p>Platform resep dan inspirasi kuliner terbaik untuk semua kalangan, dari dapur rumahan hingga masakan premium.</p>
-        </div>
-        <div class="footer-col">
-            <h4>Link Berguna</h4>
-            <p>Beranda</p>
-            <p>Tentang Kami</p>
-            <p>Menu</p>
-            <p>Resep</p>
         </div>
         <div class="footer-col">
             <h4>Hubungi Kami</h4>

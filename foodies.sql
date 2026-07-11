@@ -302,3 +302,17 @@ CREATE TABLE bookmarks (
     REFERENCES menus(id)
     ON DELETE CASCADE
 );
+
+-- ============================================
+-- VALIDASI RESEP USER
+-- status: 'pending' (baru diinput user, menunggu validasi admin)
+--         'approved' (tervalidasi admin / dibuat admin)
+--         'rejected' (ditolak admin, tidak tampil ke publik)
+-- validated_at: waktu admin memvalidasi, dipakai untuk urutan tampilan
+-- ============================================
+ALTER TABLE menus
+MODIFY status ENUM('pending','approved','rejected') DEFAULT 'approved';
+
+ALTER TABLE menus
+ADD COLUMN validated_at DATETIME NULL,
+ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;

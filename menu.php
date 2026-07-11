@@ -29,7 +29,7 @@ $query = "SELECT m.*,
           COUNT(r.id) AS total_rating
           FROM menus m
           LEFT JOIN rating r ON r.menu_id = m.id
-          WHERE 1=1";
+          WHERE m.status != 'rejected'";
 
 if($search) { $query .= " AND m.nama LIKE '%".mysqli_real_escape_string($conn,$search)."%'"; }
 if($bahan)  { $query .= " AND m.bahan='".mysqli_real_escape_string($conn,$bahan)."'"; }
@@ -49,7 +49,24 @@ if($min_bintang >= 1) {
 if($min_bintang >= 1) {
     $query .= " ORDER BY avg_rating DESC";
 } else {
-    $query .= " ORDER BY m.id ASC";
+    /*
+      Urutan tampilan (dari atas ke bawah):
+      1) Resep buatan admin (created_by IS NULL) - selalu paling atas, urut berdasarkan id.
+      2) Resep buatan user yang SUDAH divalidasi admin - urut berdasarkan waktu validasi
+         paling awal duluan (yang duluan divalidasi ada di atas yang belakangan).
+      3) Resep buatan user yang masih pending - urut berdasarkan urutan input (id).
+    */
+    $query .= " ORDER BY
+        (CASE
+            WHEN m.created_by IS NULL THEN 0
+            WHEN m.status = 'approved' THEN 1
+            ELSE 2
+        END) ASC,
+        (CASE
+            WHEN m.created_by IS NULL THEN m.id
+            WHEN m.status = 'approved' THEN COALESCE(UNIX_TIMESTAMP(m.validated_at), UNIX_TIMESTAMP(m.created_at))
+            ELSE m.id
+        END) ASC";
 }
 
 $result = mysqli_query($conn, $query);
@@ -631,13 +648,15 @@ body {
         <div class="nav-links">
             <a href="index.php">Home</a>
             <a href="menu.php">Menu</a>
-
+            
             <?php if($isPremium): ?>
+                <a href="tambah_resep.php">Tambah Resep</a>
                 <a href="bookmark.php">Bookmark</a>
-                <a href="premium.php" style="color:gold; font-weight:600;">
-                    Premium 👑
-                </a>
+                
             <?php endif; ?>
+            <a href="premium.php" style="color:gold; font-weight:600;">
+                Premium
+            </a>
         </div>
     </div>
     <div class="nav-right">

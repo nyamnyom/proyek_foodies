@@ -723,14 +723,15 @@ footer {
         <div class="nav-links">
             <a href="index.php">Home</a>
             <a href="menu.php">Menu</a>
-
-            <a href="bookmark.php">Bookmark</a>
-
+            
             <?php if($isPremium): ?>
-                <a href="premium.php" style="color:gold; font-weight:600;">
-                    Premium 👑
-                </a>
+                <a href="tambah_resep.php">Tambah Resep</a>
+                <a href="bookmark.php">Bookmark</a>
+                
             <?php endif; ?>
+            <a href="premium.php" style="color:gold; font-weight:600;">
+                Premium
+            </a>
         </div>
     </div>
     <div class="nav-right">

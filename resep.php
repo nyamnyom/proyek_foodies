@@ -113,86 +113,75 @@ if(isset($_SESSION['user_id'])) {
 // ─────────────────────────────────────────────────────────────────────────────
 $img_url = $menu['gambar'] ?? 'https://via.placeholder.com/800x500?text=No+Image';
 
-// ─────────────────────────────────────────────
-// CEK PREMIUM
-// ─────────────────────────────────────────────
+// ── PREMIUM ─────────────────────────────────────
 $isPremium = false;
+
+if(isset($_SESSION['user_id'])){
+
+    $uid_premium = intval($_SESSION['user_id']);
+
+    $cek = mysqli_query($conn,"
+        SELECT * FROM premium_users
+        WHERE user_id='$uid_premium'
+        AND aktif_sampai >= CURDATE()
+    ");
+
+    if(mysqli_num_rows($cek) > 0){
+        $isPremium = true;
+    }
+}
+
+// ── BOOKMARK (khusus member premium) ─────────────
 $isBookmarked = false;
 
 if(isset($_SESSION['user_id'])){
 
-    $uid = intval($_SESSION['user_id']);
+    $uid = $_SESSION['user_id'];
 
-    // cek apakah user premium
-    $sqlPremium = "
-        SELECT id
-        FROM premium_users
-        WHERE user_id = $uid
-        AND aktif_sampai >= CURDATE()
-        LIMIT 1
-    ";
-
-    $resultPremium = mysqli_query($conn, $sqlPremium);
-
-    if($resultPremium && mysqli_num_rows($resultPremium) == 1){
-        $isPremium = true;
-    }
-
-    // ====================================================
-    // JIKA USER MENCOBA BOOKMARK TAPI BUKAN PREMIUM
-    // ====================================================
-    if(
-        !$isPremium &&
-        (
-            isset($_POST['add_bookmark']) ||
-            isset($_POST['remove_bookmark'])
-        )
-    ){
-        header("Location: premium.php?need_premium=1");
-        exit;
-    }
-
-    // ====================================================
-    // CEK APAKAH MENU SUDAH DIBOOKMARK
-    // ====================================================
+    // cek sudah bookmark atau belum
     $cekBookmark = mysqli_query($conn,"
-        SELECT id
+        SELECT *
         FROM bookmarks
-        WHERE user_id = $uid
-        AND menu_id = $id
-        LIMIT 1
+        WHERE user_id='$uid'
+        AND menu_id='$id'
     ");
 
-    if($cekBookmark && mysqli_num_rows($cekBookmark) == 1){
+    if(mysqli_num_rows($cekBookmark) > 0){
         $isBookmarked = true;
     }
 
-    // ====================================================
-    // TAMBAH BOOKMARK
-    // ====================================================
+    // tambah bookmark — hanya untuk member premium
     if(isset($_POST['add_bookmark'])){
 
+        if(!$isPremium){
+            header("Location: premium.php?need_premium=1");
+            exit;
+        }
+
         mysqli_query($conn,"
-            INSERT IGNORE INTO bookmarks(user_id,menu_id)
-            VALUES($uid,$id)
+            INSERT INTO bookmarks(user_id, menu_id)
+            VALUES('$uid','$id')
         ");
 
-        header("Location: resep.php?id=".$id);
+        header("Location: resep.php?id=$id");
         exit;
     }
 
-    // ====================================================
-    // HAPUS BOOKMARK
-    // ====================================================
+    // hapus bookmark — hanya untuk member premium
     if(isset($_POST['remove_bookmark'])){
+
+        if(!$isPremium){
+            header("Location: premium.php?need_premium=1");
+            exit;
+        }
 
         mysqli_query($conn,"
             DELETE FROM bookmarks
-            WHERE user_id=$uid
-            AND menu_id=$id
+            WHERE user_id='$uid'
+            AND menu_id='$id'
         ");
 
-        header("Location: resep.php?id=".$id);
+        header("Location: resep.php?id=$id");
         exit;
     }
 }
@@ -1184,41 +1173,23 @@ body {
 
         <?php if(isset($_SESSION['user_id'])): ?>
 
-<?php if($isPremium): ?>
+        <?php if($isPremium): ?>
 
-    <form method="POST" style="margin-top:22px;">
+        <form method="POST" style="margin-top:22px;">
 
-        <?php if($isBookmarked): ?>
+            <?php if($isBookmarked): ?>
 
-            <button
-                type="submit"
-                name="remove_bookmark"
-                class="bookmark-btn bookmarked">
-                ❤️ Tersimpan di Bookmark
-            </button>
+                <button type="submit" name="remove_bookmark" class="bookmark-btn bookmarked">
+                    ❤️ Tersimpan di Bookmark
+                </button>
 
-        <?php else: ?>
+            <?php else: ?>
 
-            <button
-                type="submit"
-                name="add_bookmark"
-                class="bookmark-btn">
-                🤍 Simpan ke Bookmark
-            </button>
+                <button type="submit" name="add_bookmark" class="bookmark-btn">
+                    🤍 Simpan ke Bookmark
+                </button>
 
-        <?php endif; ?>
-
-    </form>
-
-<?php else: ?>
-
-    <a href="premium.php?need_premium=1"
-       class="bookmark-btn"
-       style="display:inline-flex;margin-top:22px;text-decoration:none;">
-        👑 Upgrade Premium untuk Bookmark
-    </a>
-
-<?php endif; ?>
+            <?php endif; ?>
 
         </form>
 
@@ -1230,6 +1201,7 @@ body {
 
         <?php endif; ?>
 
+        <?php endif; ?>
     </div>
 </div>
 
@@ -1254,12 +1226,19 @@ body {
                 <div class="step-num"><?= $step['step_ke'] ?></div>
                 <div class="step-body">
                     <p><?= htmlspecialchars($step['deskripsi']) ?></p>
-                <?php if(!empty($step['gambar'])): ?>
+                <?php if(!empty($step['gambar_step'])): ?>
                     <div class="step-img">
                         <img 
-                            src="<?= htmlspecialchars($step['gambar']) ?>" 
+                            src="<?= htmlspecialchars($step['gambar_step']) ?>" 
                             alt="Step <?= $step['step_ke'] ?>"
                         >
+                    </div>
+                <?php endif; ?>
+                <?php if(!empty($step['video_step'])): ?>
+                    <div class="step-img">
+                        <video controls style="width:100%;border-radius:16px;display:block;">
+                            <source src="<?= htmlspecialchars($step['video_step']) ?>">
+                        </video>
                     </div>
                 <?php endif; ?>
 
@@ -1301,6 +1280,36 @@ body {
                         <div class="nutri-val"><?= $menu['kalori'] ?><span> kkal</span></div>
                         <div class="nutri-label">Total Kalori</div>
                     </div>
+                </div>
+
+                <div class="nutri-item">
+                    <div class="nutri-val"><?= number_format((float)($menu['protein'] ?? 0), 1) ?><span> g</span></div>
+                    <div class="nutri-label">Protein</div>
+                </div>
+
+                <div class="nutri-item">
+                    <div class="nutri-val"><?= number_format((float)($menu['karbohidrat'] ?? 0), 1) ?><span> g</span></div>
+                    <div class="nutri-label">Karbohidrat</div>
+                </div>
+
+                <div class="nutri-item">
+                    <div class="nutri-val"><?= number_format((float)($menu['lemak'] ?? 0), 1) ?><span> g</span></div>
+                    <div class="nutri-label">Lemak</div>
+                </div>
+
+                <div class="nutri-item">
+                    <div class="nutri-val"><?= number_format((float)($menu['gula'] ?? 0), 1) ?><span> g</span></div>
+                    <div class="nutri-label">Gula</div>
+                </div>
+
+                <div class="nutri-item">
+                    <div class="nutri-val"><?= number_format((float)($menu['serat'] ?? 0), 1) ?><span> g</span></div>
+                    <div class="nutri-label">Serat</div>
+                </div>
+
+                <div class="nutri-item">
+                    <div class="nutri-val"><?= number_format((float)($menu['sodium'] ?? 0), 1) ?><span> mg</span></div>
+                    <div class="nutri-label">Sodium</div>
                 </div>
 
                 <div class="nutri-item">

@@ -189,7 +189,21 @@ $kalori_tinggi = mysqli_fetch_row(mysqli_query($conn,"SELECT COUNT(*) FROM menus
 $kalori_rendah = mysqli_fetch_row(mysqli_query($conn,"SELECT COUNT(*) FROM menus WHERE kalori<400"))[0];
 $total_review  = mysqli_fetch_row(mysqli_query($conn,"SELECT COUNT(*) FROM rating"))[0];
 
-$r_menus = mysqli_query($conn,"SELECT * FROM menus ORDER BY id ASC");
+$r_menus = mysqli_query($conn,"
+    SELECT * FROM menus
+    ORDER BY
+        (CASE
+            WHEN created_by IS NULL THEN 0
+            WHEN status = 'approved' THEN 1
+            WHEN status = 'pending' THEN 2
+            ELSE 3
+        END) ASC,
+        (CASE
+            WHEN created_by IS NULL THEN id
+            WHEN status = 'approved' THEN COALESCE(UNIX_TIMESTAMP(validated_at), UNIX_TIMESTAMP(created_at))
+            ELSE id
+        END) ASC
+");
 $r_users = mysqli_query($conn,"SELECT * FROM users ORDER BY created_at DESC");
 
 $active_tab = $_GET['tab'] ?? 'menu';
@@ -560,7 +574,7 @@ textarea{resize:vertical;min-height:90px}
                         placeholder="cth: Panaskan minyak lalu tumis bawang"></textarea>
                     </div>
 
-                    <!-- <div class="form-grid">
+                    <div class="form-grid">
                         <div class="form-group">
                             <label>Gambar Step (URL)</label>
                             <input type="text"
@@ -574,16 +588,16 @@ textarea{resize:vertical;min-height:90px}
                             name="step_video[]"
                             placeholder="https://video.com/video.mp4">
                         </div>
-                    </div> -->
+                    </div>
                 </div>
 
             </div>
 
-              <button type="button"
-              class="btn-add-step"
-              onclick="addStep()">
-              ＋ Tambah Step
-              </button>
+            <button type="button"
+            class="btn-add-step"
+            onclick="addStep()">
+            ＋ Tambah Step
+            </button>
             <div class="form-actions">
               <button type="submit" class="btn-save">Simpan Menu</button>
               <button type="button" class="btn-cancel" onclick="toggleAdd('menu')">Batal</button>
@@ -598,7 +612,7 @@ textarea{resize:vertical;min-height:90px}
           <thead>
             <tr>
               <th>#</th><th>Foto</th><th>Nama Menu</th><th>Bahan Utama</th>
-              <th>Kategori</th><th>Kalori</th><th style="text-align:center">Aksi</th>
+              <th>Kategori</th><th>Kalori</th><th>Sumber</th><th style="text-align:center">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -625,6 +639,17 @@ textarea{resize:vertical;min-height:90px}
             <td>
               <span><?= $m['kalori'] ?> kkal</span>
               <div class="kal-bar-wrap"><div class="kal-bar" style="width:<?= $kal_pct ?>%"></div></div>
+            </td>
+            <td>
+              <?php if (empty($m['created_by'])): ?>
+                <span class="pill pill-admin">Admin</span>
+              <?php elseif (($m['status'] ?? '') === 'approved'): ?>
+                <span class="pill" style="background:rgba(46,125,82,0.10);color:var(--green);border:1px solid rgba(46,125,82,0.2)">User · Tervalidasi</span>
+              <?php elseif (($m['status'] ?? '') === 'rejected'): ?>
+                <span class="pill" style="background:rgba(192,57,43,0.10);color:var(--red);border:1px solid rgba(192,57,43,0.2)">User · Ditolak</span>
+              <?php else: ?>
+                <span class="pill" style="background:rgba(240,165,0,0.12);color:#B8860B;border:1px solid rgba(240,165,0,0.25)">User · Pending</span>
+              <?php endif; ?>
             </td>
             <td>
               <div class="actions" style="justify-content:center">
@@ -929,7 +954,29 @@ function openEditMenu(id, nama, bahan, kat, kalori, gambar, bahanList, langkahLi
                     >${step.deskripsi ?? ''}</textarea>
                 </div>
 
+                <div class="form-grid">
 
+                    <div class="form-group">
+                        <label>Gambar Step (URL)</label>
+
+                        <input
+                            type="text"
+                            name="step_gambar[]"
+                            value="${step.gambar_step ?? ''}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>Video Pendek (URL)</label>
+
+                        <input
+                            type="text"
+                            name="step_video[]"
+                            value="${step.video_step ?? ''}"
+                        >
+                    </div>
+
+                </div>
 
             </div>
         `);
@@ -957,7 +1004,21 @@ function addEditStep(){
             <textarea name="step_deskripsi[]" rows="3"></textarea>
         </div>
 
+        <div class="form-grid">
 
+            <div class="form-group">
+                <label>Gambar Step (URL)</label>
+                <input type="text"
+                name="step_gambar[]">
+            </div>
+
+            <div class="form-group">
+                <label>Video Pendek (URL)</label>
+                <input type="text"
+                name="step_video[]">
+            </div>
+
+        </div>
 
     </div>
     `;
@@ -1002,7 +1063,23 @@ function addStep(){
             placeholder="cth: Masukkan nasi lalu aduk rata"></textarea>
         </div>
 
+        <div class="form-grid">
 
+            <div class="form-group">
+                <label>Gambar Step (URL)</label>
+                <input type="text"
+                name="step_gambar[]"
+                placeholder="https://gambar.com/step.jpg">
+            </div>
+
+            <div class="form-group">
+                <label>Video Pendek (URL)</label>
+                <input type="text"
+                name="step_video[]"
+                placeholder="https://video.com/video.mp4">
+            </div>
+
+        </div>
 
     </div>
     `;
